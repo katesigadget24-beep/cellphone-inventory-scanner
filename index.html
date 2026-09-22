@@ -125,9 +125,7 @@
 
     try {
 
-      scanner = new Html5Qrcode("reader", {
-  useBarCodeDetectorIfSupported: false
-});
+      scanner = new Html5Qrcode("reader");
 
       const cameras = await Html5Qrcode.getCameras();
 
@@ -156,10 +154,10 @@
       }
 
       const config = {
-  fps: 15,
+  fps: 10,
   qrbox: {
-    width: 450,
-    height: 200
+    width: 300,
+    height: 150
   }
 };
       };
