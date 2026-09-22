@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Cell Phone Inventory Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      font-size: 24px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    #reader {
+      width: 100%;
+      margin: 15px auto;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    #startBtn {
+      background: #1976d2;
+      color: white;
+    }
+
+    #stopBtn {
+      background: #666;
+      color: white;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e8f1ff;
+      border-radius: 10px;
+      font-size: 18px;
+      word-break: break-all;
+    }
+
+    .success {
+      color: #16803c;
+      font-weight: bold;
+    }
+
+    .error {
+      color: #d32f2f;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>📱 Cell Phone Inventory</h1>
+
+  <div class="subtitle">
+    Scan the IMEI barcode on the cellphone box
+  </div>
+
+  <button id="startBtn" onclick="startScanner()">
+    📷 START CAMERA SCANNER
+  </button>
+
+  <button id="stopBtn" onclick="stopScanner()">
+    ⏹ STOP SCANNER
+  </button>
+
+  <div id="reader"></div>
+
+  <div class="result">
+    <strong>Scanned Code:</strong>
+    <div id="scannedCode">None</div>
+  </div>
+
+  <div id="message"></div>
+
+</div>
+
+<script>
+
+  let scanner = null;
+  let scanning = false;
+
+  async function startScanner() {
+
+    const message = document.getElementById("message");
+
+    message.innerHTML = "";
+
+    try {
+
+      scanner = new Html5Qrcode("reader");
+
+      const cameras = await Html5Qrcode.getCameras();
+
+      if (!cameras || cameras.length === 0) {
+        message.innerHTML =
+          '<p class="error">❌ No camera found.</p>';
+        return;
+      }
+
+      let cameraId = cameras[0].id;
+
+      // Try to select the rear camera
+      for (let i = 0; i < cameras.length; i++) {
+
+        const label =
+          (cameras[i].label || "").toLowerCase();
+
+        if (
+          label.includes("back") ||
+          label.includes("rear") ||
+          label.includes("environment")
+        ) {
+          cameraId = cameras[i].id;
+          break;
+        }
+      }
+
+      const config = {
+        fps: 10,
+        qrbox: {
+          width: 300,
+          height: 150
+        }
+      };
+
+      await scanner.start(
+        cameraId,
+        config,
+        onScanSuccess,
+        onScanError
+      );
+
+      scanning = true;
+
+      message.innerHTML =
+        '<p class="success">📷 Camera is active. Point it at the barcode.</p>';
+
+    } catch (error) {
+
+      console.error(error);
+
+      message.innerHTML =
+        '<p class="error">❌ Camera error: ' +
+        error.name +
+        ': ' +
+        error.message +
+        '</p>';
+    }
+  }
+
+
+  function onScanSuccess(decodedText, decodedResult) {
+
+    document.getElementById("scannedCode").textContent =
+      decodedText;
+
+    document.getElementById("message").innerHTML =
+      '<p class="success">✅ Barcode scanned successfully!</p>';
+
+    // Stop after successful scan
+    stopScanner();
+  }
+
+
+  function onScanError(errorMessage) {
+    // Ignore normal scanning errors
+  }
+
+
+  async function stopScanner() {
+
+    if (scanner && scanning) {
+
+      try {
+        await scanner.stop();
+      } catch (error) {
+        console.log(error);
+      }
+
+      scanning = false;
+    }
+  }
+
+</script>
+
+</body>
+</html>
