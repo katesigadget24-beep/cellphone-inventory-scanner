@@ -189,15 +189,32 @@
 
   function onScanSuccess(decodedText, decodedResult) {
 
-    document.getElementById("scannedCode").textContent =
-      decodedText;
+    const code = String(decodedText).trim();
 
-    document.getElementById("message").innerHTML =
-      '<p class="success">✅ Barcode scanned successfully!</p>';
+    // Accept IMEI only: exactly 15 digits
+    if (/^\d{15}$/.test(code)) {
 
-    // Stop after successful scan
-    stopScanner();
-  }
+      document.getElementById("scannedCode").textContent =
+        code;
+
+      document.getElementById("message").innerHTML =
+        '<p class="success">✅ IMEI scanned successfully!</p>';
+
+      // Stop scanner after valid IMEI
+      stopScanner();
+
+    } else {
+
+      // Ignore other barcodes
+      document.getElementById("scannedCode").textContent =
+        code;
+
+      document.getElementById("message").innerHTML =
+        '<p class="error">⚠️ Not an IMEI. Please scan the 15-digit IMEI barcode.</p>';
+
+      // Keep camera running
+    }
+}
 
 
   function onScanError(errorMessage) {
