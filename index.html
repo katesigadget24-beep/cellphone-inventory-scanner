@@ -125,8 +125,11 @@
 
     try {
 
-      scanner = new Html5Qrcode("reader");
-
+      scanner = new Html5Qrcode("reader", {
+  formatsToSupport: [
+    Html5QrcodeSupportedFormats.CODE_128
+  ]
+});
       const cameras = await Html5Qrcode.getCameras();
 
       if (!cameras || cameras.length === 0) {
