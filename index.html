@@ -190,33 +190,48 @@
   }
 
 
-  function onScanSuccess(decodedText, decodedResult) {
+  let scannedIMEIs = [];
 
-    const code = String(decodedText).trim();
+function onScanSuccess(decodedText, decodedResult) {
 
-    // Accept IMEI only: exactly 15 digits
-    if (/^\d{15}$/.test(code)) {
+  const code = String(decodedText).trim();
 
-      document.getElementById("scannedCode").textContent =
-        code;
+  // Accept IMEI only: exactly 15 digits
+  if (/^\d{15}$/.test(code)) {
 
-      document.getElementById("message").innerHTML =
-        '<p class="success">✅ IMEI scanned successfully!</p>';
-
-      // Stop scanner after valid IMEI
-      stopScanner();
-
-    } else {
-
-      // Ignore other barcodes
-      document.getElementById("scannedCode").textContent =
-        code;
-
-      document.getElementById("message").innerHTML =
-        '<p class="error">⚠️ Not an IMEI. Please scan the 15-digit IMEI barcode.</p>';
-
-      // Keep camera running
+    // Prevent duplicate scanning
+    if (scannedIMEIs.includes(code)) {
+      return;
     }
+
+    scannedIMEIs.push(code);
+
+    if (scannedIMEIs.length === 1) {
+
+      document.getElementById("scannedCode").innerHTML =
+        "<strong>IMEI 1:</strong> " + scannedIMEIs[0];
+
+      document.getElementById("message").innerHTML =
+        '<p class="success">✅ IMEI 1 scanned! Now scan IMEI 2.</p>';
+
+    } else if (scannedIMEIs.length === 2) {
+
+      document.getElementById("scannedCode").innerHTML =
+        "<strong>IMEI 1:</strong> " + scannedIMEIs[0] +
+        "<br><strong>IMEI 2:</strong> " + scannedIMEIs[1];
+
+      document.getElementById("message").innerHTML =
+        '<p class="success">✅ BOTH IMEIs scanned successfully!</p>';
+
+      // Stop after two unique IMEIs
+      stopScanner();
+    }
+
+  } else {
+
+    document.getElementById("message").innerHTML =
+      '<p class="error">⚠️ Not an IMEI. Please scan the 15-digit IMEI barcode.</p>';
+  }
 }
 
 
