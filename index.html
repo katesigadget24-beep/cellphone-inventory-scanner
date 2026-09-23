@@ -119,13 +119,20 @@
 
   async function startScanner() {
 
-    const message = document.getElementById("message");
+  // Reset previous scan
+  scannedIMEIs = [];
 
-    message.innerHTML = "";
+  document.getElementById("scannedCode").innerHTML = "None";
+
+  const message = document.getElementById("message");
+
+  message.innerHTML = "";
 
     try {
 
-      scanner = new Html5Qrcode("reader", {
+      document.getElementById("reader").innerHTML = "";
+
+scanner = new Html5Qrcode("reader", {
   formatsToSupport: [
     Html5QrcodeSupportedFormats.CODE_128
   ]
