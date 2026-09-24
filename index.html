@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Cell Phone Inventory Scanner</title>
+  <title>Cell Phone Inventory</title>
 
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script
+    src="https://unpkg.com/html5-qrcode"
+    type="text/javascript">
+  </script>
 
   <style>
+
     body {
       font-family: Arial, sans-serif;
       background: #f4f6f8;
@@ -37,6 +43,34 @@
       margin-bottom: 20px;
     }
 
+    .mode-title {
+      font-weight: bold;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    .mode-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mode-btn {
+      padding: 14px 8px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #e5e7eb;
+      color: #333;
+    }
+
+    .mode-btn.active {
+      background: #1976d2;
+      color: white;
+    }
+
     #reader {
       width: 100%;
       margin: 15px auto;
@@ -62,6 +96,15 @@
       color: white;
     }
 
+    .selected-mode {
+      margin-top: 15px;
+      padding: 12px;
+      background: #eef5ff;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+    }
+
     .result {
       margin-top: 20px;
       padding: 15px;
@@ -80,8 +123,11 @@
       color: #d32f2f;
       font-weight: bold;
     }
+
   </style>
+
 </head>
+
 
 <body>
 
@@ -90,178 +136,423 @@
   <h1>📱 Cell Phone Inventory</h1>
 
   <div class="subtitle">
-    Scan the IMEI barcode on the cellphone box
+    Cell Phone Inventory Scanner
   </div>
 
-  <button id="startBtn" onclick="startScanner()">
+
+  <div class="mode-title">
+    What do you want to do?
+  </div>
+
+
+  <div class="mode-buttons">
+
+    <button
+      class="mode-btn active"
+      id="newStockBtn"
+      onclick="selectMode('NEW STOCK')">
+      📦 NEW STOCK
+    </button>
+
+    <button
+      class="mode-btn"
+      id="soldBtn"
+      onclick="selectMode('SOLD')">
+      💰 SOLD
+    </button>
+
+    <button
+      class="mode-btn"
+      id="transferBtn"
+      onclick="selectMode('TRANSFER')">
+      🔄 TRANSFER
+    </button>
+
+    <button
+      class="mode-btn"
+      id="defectiveBtn"
+      onclick="selectMode('DEFECTIVE')">
+      ⚠️ DEFECTIVE
+    </button>
+
+  </div>
+
+
+  <div class="selected-mode">
+    Selected: <span id="selectedMode">NEW STOCK</span>
+  </div>
+
+
+  <button
+    id="startBtn"
+    onclick="startScanner()">
     📷 START CAMERA SCANNER
   </button>
 
-  <button id="stopBtn" onclick="stopScanner()">
+
+  <button
+    id="stopBtn"
+    onclick="stopScanner()">
     ⏹ STOP SCANNER
   </button>
 
+
   <div id="reader"></div>
 
+
   <div class="result">
+
     <strong>Scanned Code:</strong>
-    <div id="scannedCode">None</div>
+
+    <div id="scannedCode">
+      None
+    </div>
+
   </div>
+
 
   <div id="message"></div>
 
 </div>
 
+
 <script>
 
   let scanner = null;
+
   let scanning = false;
+
+  let scannedIMEIs = [];
+
+  let currentMode = "NEW STOCK";
+
+
+  // =========================
+  // SELECT MODE
+  // =========================
+
+  function selectMode(mode) {
+
+    currentMode = mode;
+
+    // Reset previous scan
+    scannedIMEIs = [];
+
+    document.getElementById("scannedCode").innerHTML = "None";
+
+    document.getElementById("message").innerHTML = "";
+
+
+    document.getElementById("selectedMode").textContent = mode;
+
+
+    // Remove active state
+    document
+      .querySelectorAll(".mode-btn")
+      .forEach(function(button) {
+        button.classList.remove("active");
+      });
+
+
+    // Add active state
+    if (mode === "NEW STOCK") {
+
+      document
+        .getElementById("newStockBtn")
+        .classList.add("active");
+
+    }
+
+    if (mode === "SOLD") {
+
+      document
+        .getElementById("soldBtn")
+        .classList.add("active");
+
+    }
+
+    if (mode === "TRANSFER") {
+
+      document
+        .getElementById("transferBtn")
+        .classList.add("active");
+
+    }
+
+    if (mode === "DEFECTIVE") {
+
+      document
+        .getElementById("defectiveBtn")
+        .classList.add("active");
+
+    }
+
+  }
+
+
+  // =========================
+  // START SCANNER
+  // =========================
 
   async function startScanner() {
 
-  // Reset previous scan
-  scannedIMEIs = [];
+    // Reset previous scan
+    scannedIMEIs = [];
 
-  document.getElementById("scannedCode").innerHTML = "None";
+    document.getElementById("scannedCode").innerHTML = "None";
 
-  const message = document.getElementById("message");
+    document.getElementById("message").innerHTML = "";
 
-  message.innerHTML = "";
 
     try {
 
+      // Clear old scanner
       document.getElementById("reader").innerHTML = "";
 
-scanner = new Html5Qrcode("reader", {
-  formatsToSupport: [
-    Html5QrcodeSupportedFormats.CODE_128
-  ]
-});
-      const cameras = await Html5Qrcode.getCameras();
+
+      scanner = new Html5Qrcode("reader", {
+
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.CODE_128
+        ]
+
+      });
+
+
+      const cameras =
+        await Html5Qrcode.getCameras();
+
 
       if (!cameras || cameras.length === 0) {
-        message.innerHTML =
+
+        document.getElementById("message").innerHTML =
           '<p class="error">❌ No camera found.</p>';
+
         return;
+
       }
+
 
       let cameraId = cameras[0].id;
 
-      // Try to select the rear camera
-      for (let i = 0; i < cameras.length; i++) {
+
+      // Try to select rear camera
+      for (
+        let i = 0;
+        i < cameras.length;
+        i++
+      ) {
 
         const label =
           (cameras[i].label || "").toLowerCase();
+
 
         if (
           label.includes("back") ||
           label.includes("rear") ||
           label.includes("environment")
         ) {
+
           cameraId = cameras[i].id;
+
           break;
+
         }
+
       }
 
+
       const config = {
-  fps: 10,
-  qrbox: {
-    width: 300,
-    height: 150
-  }
-};
-      
+
+        fps: 10,
+
+        qrbox: {
+          width: 300,
+          height: 150
+        }
+
+      };
+
+
       await scanner.start(
+
         cameraId,
+
         config,
+
         onScanSuccess,
+
         onScanError
+
       );
+
 
       scanning = true;
 
-      message.innerHTML =
-        '<p class="success">📷 Camera is active. Point it at the barcode.</p>';
 
-    } catch (error) {
+      document.getElementById("message").innerHTML =
+        '<p class="success">📷 Camera is active. Scan the barcode.</p>';
+
+    }
+
+
+    catch (error) {
 
       console.error(error);
 
-      message.innerHTML =
+
+      document.getElementById("message").innerHTML =
         '<p class="error">❌ Camera error: ' +
         error.name +
         ': ' +
         error.message +
         '</p>';
+
     }
+
   }
 
 
-  let scannedIMEIs = [];
+  // =========================
+  // SCAN SUCCESS
+  // =========================
 
-function onScanSuccess(decodedText, decodedResult) {
+  function onScanSuccess(decodedText, decodedResult) {
 
-  const code = String(decodedText).trim();
+    const code =
+      String(decodedText).trim();
 
-  // Accept IMEI only: exactly 15 digits
-  if (/^\d{15}$/.test(code)) {
 
-    // Prevent duplicate scanning
-    if (scannedIMEIs.includes(code)) {
+    // IMEI must be exactly 15 digits
+    if (!/^\d{15}$/.test(code)) {
+
+      document.getElementById("message").innerHTML =
+        '<p class="error">⚠️ Not an IMEI.</p>';
+
       return;
+
     }
+
+
+    // Prevent duplicate
+    if (scannedIMEIs.includes(code)) {
+
+      return;
+
+    }
+
 
     scannedIMEIs.push(code);
 
-    if (scannedIMEIs.length === 1) {
 
-      document.getElementById("scannedCode").innerHTML =
-        "<strong>IMEI 1:</strong> " + scannedIMEIs[0];
+    // =========================
+    // NEW STOCK
+    // =========================
 
-      document.getElementById("message").innerHTML =
-        '<p class="success">✅ IMEI 1 scanned! Now scan IMEI 2.</p>';
+    if (currentMode === "NEW STOCK") {
 
-    } else if (scannedIMEIs.length === 2) {
 
-      document.getElementById("scannedCode").innerHTML =
-        "<strong>IMEI 1:</strong> " + scannedIMEIs[0] +
-        "<br><strong>IMEI 2:</strong> " + scannedIMEIs[1];
+      if (scannedIMEIs.length === 1) {
 
-      document.getElementById("message").innerHTML =
-        '<p class="success">✅ BOTH IMEIs scanned successfully!</p>';
+        document.getElementById("scannedCode").innerHTML =
 
-      // Stop after two unique IMEIs
-      stopScanner();
+          "<strong>IMEI 1:</strong> " +
+          scannedIMEIs[0];
+
+
+        document.getElementById("message").innerHTML =
+          '<p class="success">✅ IMEI 1 scanned! Now scan IMEI 2.</p>';
+
+      }
+
+
+      else if (scannedIMEIs.length === 2) {
+
+        document.getElementById("scannedCode").innerHTML =
+
+          "<strong>IMEI 1:</strong> " +
+          scannedIMEIs[0] +
+
+          "<br><strong>IMEI 2:</strong> " +
+          scannedIMEIs[1];
+
+
+        document.getElementById("message").innerHTML =
+          '<p class="success">✅ BOTH IMEIs scanned successfully!</p>';
+
+
+        stopScanner();
+
+      }
+
     }
 
-  } else {
 
-    document.getElementById("message").innerHTML =
-      '<p class="error">⚠️ Not an IMEI. Please scan the 15-digit IMEI barcode.</p>';
+    // =========================
+    // SOLD / TRANSFER / DEFECTIVE
+    // =========================
+
+    else {
+
+      document.getElementById("scannedCode").innerHTML =
+
+        "<strong>IMEI:</strong> " +
+        scannedIMEIs[0];
+
+
+      document.getElementById("message").innerHTML =
+
+        '<p class="success">✅ IMEI scanned for ' +
+        currentMode +
+        '.</p>';
+
+
+      stopScanner();
+
+    }
+
   }
-}
 
+
+  // =========================
+  // SCAN ERROR
+  // =========================
 
   function onScanError(errorMessage) {
+
     // Ignore normal scanning errors
+
   }
 
+
+  // =========================
+  // STOP SCANNER
+  // =========================
 
   async function stopScanner() {
 
     if (scanner && scanning) {
 
       try {
+
         await scanner.stop();
-      } catch (error) {
+
+      }
+
+      catch (error) {
+
         console.log(error);
+
       }
 
       scanning = false;
+
     }
+
   }
 
 </script>
 
 </body>
+
 </html>
