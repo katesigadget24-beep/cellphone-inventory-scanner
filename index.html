@@ -468,23 +468,25 @@
 
       else if (scannedIMEIs.length === 2) {
 
-        document.getElementById("scannedCode").innerHTML =
+  document.getElementById("scannedCode").innerHTML =
 
-          "<strong>IMEI 1:</strong> " +
-          scannedIMEIs[0] +
+    "<strong>IMEI 1:</strong> " +
+    scannedIMEIs[0] +
 
-          "<br><strong>IMEI 2:</strong> " +
-          scannedIMEIs[1];
-
-
-        document.getElementById("message").innerHTML =
-          '<p class="success">✅ BOTH IMEIs scanned successfully!</p>';
+    "<br><strong>IMEI 2:</strong> " +
+    scannedIMEIs[1];
 
 
-        stopScanner();
+  document.getElementById("message").innerHTML =
+    '<p class="success">✅ BOTH IMEIs scanned successfully!<br>🔍 Checking Google Sheets...</p>';
 
-      }
 
+  stopScanner();
+
+  // Search Google Sheets
+  searchGoogleSheet(scannedIMEIs[0]);
+
+}
     }
 
 
@@ -494,23 +496,25 @@
 
     else {
 
-      document.getElementById("scannedCode").innerHTML =
+  document.getElementById("scannedCode").innerHTML =
 
-        "<strong>IMEI:</strong> " +
-        scannedIMEIs[0];
-
-
-      document.getElementById("message").innerHTML =
-
-        '<p class="success">✅ IMEI scanned for ' +
-        currentMode +
-        '.</p>';
+    "<strong>IMEI:</strong> " +
+    scannedIMEIs[0];
 
 
-      stopScanner();
+  document.getElementById("message").innerHTML =
 
-    }
+    '<p class="success">✅ IMEI scanned for ' +
+    currentMode +
+    '.<br>🔍 Checking Google Sheets...</p>';
 
+
+  stopScanner();
+
+  // Search Google Sheets
+  searchGoogleSheet(scannedIMEIs[0]);
+
+}
   }
 
 
@@ -524,6 +528,99 @@
 
   }
 
+  // =========================
+// SEARCH GOOGLE SHEETS
+// =========================
+
+function searchGoogleSheet(imei) {
+
+  const appsScriptUrl =
+    "https://script.google.com/macros/s/AKfycby24Re9Eh_cPeBBuqYzdL5xoJ4T_VlBcHAySau3ZuC0q6MbFovODrm_VJvOzARrh5Y/exec";
+
+  const callbackName =
+    "inventoryCallback_" + Date.now();
+
+  window[callbackName] = function(result) {
+
+    console.log("Google Sheets result:", result);
+
+    if (result.found) {
+
+      document.getElementById("message").innerHTML =
+        '<p class="success">✅ PHONE FOUND IN INVENTORY!</p>';
+
+      document.getElementById("scannedCode").innerHTML =
+
+        "<strong>IMEI 1:</strong> " +
+        result.imei1 +
+
+        "<br><strong>IMEI 2:</strong> " +
+        result.imei2 +
+
+        "<br><strong>Serial:</strong> " +
+        result.serial +
+
+        "<br><strong>Product ID:</strong> " +
+        result.productId +
+
+        "<br><strong>Brand:</strong> " +
+        result.brand +
+
+        "<br><strong>Model:</strong> " +
+        result.model +
+
+        "<br><strong>Storage:</strong> " +
+        result.storage +
+
+        "<br><strong>Color:</strong> " +
+        result.color +
+
+        "<br><strong>Branch:</strong> " +
+        result.branch +
+
+        "<br><strong>Status:</strong> " +
+        result.status +
+
+        "<br><strong>Date Received:</strong> " +
+        result.dateReceived;
+
+    }
+
+    else {
+
+      document.getElementById("message").innerHTML =
+        '<p class="error">❌ IMEI NOT FOUND IN INVENTORY.</p>';
+
+    }
+
+    delete window[callbackName];
+
+    const scriptElement =
+      document.getElementById(callbackName);
+
+    if (scriptElement) {
+      scriptElement.remove();
+    }
+
+  };
+
+
+  const script =
+    document.createElement("script");
+
+  script.id = callbackName;
+
+  script.src =
+    appsScriptUrl +
+    "?api=search" +
+    "&imei=" +
+    encodeURIComponent(imei) +
+    "&callback=" +
+    callbackName;
+
+  document.body.appendChild(script);
+
+}
 
   // =========================
   // STOP SCANNER
