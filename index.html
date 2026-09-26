@@ -413,15 +413,13 @@
   }
 
 
-  // =========================
+    // =========================
   // SCAN SUCCESS
   // =========================
 
   function onScanSuccess(decodedText, decodedResult) {
 
-    const code =
-      String(decodedText).trim();
-
+    const code = String(decodedText).trim();
 
     // IMEI must be exactly 15 digits
     if (!/^\d{15}$/.test(code)) {
@@ -430,17 +428,12 @@
         '<p class="error">⚠️ Not an IMEI.</p>';
 
       return;
-
     }
-
 
     // Prevent duplicate
     if (scannedIMEIs.includes(code)) {
-
       return;
-
     }
-
 
     scannedIMEIs.push(code);
 
@@ -451,42 +444,36 @@
 
     if (currentMode === "NEW STOCK") {
 
-
       if (scannedIMEIs.length === 1) {
 
         document.getElementById("scannedCode").innerHTML =
-
           "<strong>IMEI 1:</strong> " +
           scannedIMEIs[0];
-
 
         document.getElementById("message").innerHTML =
           '<p class="success">✅ IMEI 1 scanned! Now scan IMEI 2.</p>';
 
       }
 
-
       else if (scannedIMEIs.length === 2) {
 
-  document.getElementById("scannedCode").innerHTML =
+        document.getElementById("scannedCode").innerHTML =
 
-    "<strong>IMEI 1:</strong> " +
-    scannedIMEIs[0] +
+          "<strong>IMEI 1:</strong> " +
+          scannedIMEIs[0] +
 
-    "<br><strong>IMEI 2:</strong> " +
-    scannedIMEIs[1];
+          "<br><strong>IMEI 2:</strong> " +
+          scannedIMEIs[1];
 
+        document.getElementById("message").innerHTML =
+          '<p class="success">✅ BOTH IMEIs scanned successfully!<br>🔍 Checking Google Sheets...</p>';
 
-  document.getElementById("message").innerHTML =
-    '<p class="success">✅ BOTH IMEIs scanned successfully!<br>🔍 Checking Google Sheets...</p>';
+        stopScanner();
 
+        searchGoogleSheet(scannedIMEIs[0]);
 
-  stopScanner();
+      }
 
-  // Search Google Sheets
-  searchGoogleSheet(scannedIMEIs[0]);
-
-}
     }
 
 
@@ -496,25 +483,21 @@
 
     else {
 
-  document.getElementById("scannedCode").innerHTML =
+      document.getElementById("scannedCode").innerHTML =
+        "<strong>IMEI:</strong> " +
+        scannedIMEIs[0];
 
-    "<strong>IMEI:</strong> " +
-    scannedIMEIs[0];
+      document.getElementById("message").innerHTML =
+        '<p class="success">✅ IMEI scanned for ' +
+        currentMode +
+        '.<br>🔍 Checking Google Sheets...</p>';
 
+      stopScanner();
 
-  document.getElementById("message").innerHTML =
+      searchGoogleSheet(scannedIMEIs[0]);
 
-    '<p class="success">✅ IMEI scanned for ' +
-    currentMode +
-    '.<br>🔍 Checking Google Sheets...</p>';
+    }
 
-
-  stopScanner();
-
-  // Search Google Sheets
-  searchGoogleSheet(scannedIMEIs[0]);
-
-}
   }
 
 
@@ -528,241 +511,169 @@
 
   }
 
+
   // =========================
-// SEARCH GOOGLE SHEETS
-// =========================
+  // SEARCH GOOGLE SHEETS
+  // =========================
 
-// =========================
-// SEARCH GOOGLE SHEETS
-// =========================
+  function searchGoogleSheet(imei) {
 
-function searchGoogleSheet(imei) {
+    const appsScriptUrl =
+      "https://script.google.com/macros/s/AKfycbylq5dZebjqqWlyUtLdtxuo6068nc3K-qjS_MoiJAggvUZ_WIqsFloMMOZvN7KrNAEF/exec";
 
-  const appsScriptUrl =
-    "https://script.google.com/macros/s/AKfycbylq5dZebjqqWlyUtLdtxuo6068nc3K-qjS_MoiJAggvUZ_WIqsFloMMOZvN7KrNAEF/exec";
+    const callbackName =
+      "inventoryCallback_" + Date.now();
 
-  const callbackName =
-    "inventoryCallback_" + Date.now();
+    let finished = false;
 
-  let finished = false;
-
-  // Show loading
-  document.getElementById("message").innerHTML =
-    '<p class="success">🔍 Checking Google Sheets...</p>';
-
-  // Callback from Apps Script
-  window[callbackName] = function(result) {
-
-    finished = true;
-
-    console.log("Google Sheets result:", result);
-
-    if (result.found) {
-
-      document.getElementById("message").innerHTML =
-        '<p class="success">✅ PHONE FOUND IN INVENTORY!</p>';
-
-      document.getElementById("scannedCode").innerHTML =
-
-        "<strong>IMEI 1:</strong> " +
-        (result.imei1 || "") +
-
-        "<br><strong>IMEI 2:</strong> " +
-        (result.imei2 || "") +
-
-        "<br><strong>Serial:</strong> " +
-        (result.serial || "") +
-
-        "<br><strong>Product ID:</strong> " +
-        (result.productId || "") +
-
-        "<br><strong>Brand:</strong> " +
-        (result.brand || "") +
-
-        "<br><strong>Model:</strong> " +
-        (result.model || "") +
-
-        "<br><strong>Storage:</strong> " +
-        (result.storage || "") +
-
-        "<br><strong>Color:</strong> " +
-        (result.color || "") +
-
-        "<br><strong>Branch:</strong> " +
-        (result.branch || "") +
-
-        "<br><strong>Status:</strong> " +
-        (result.status || "") +
-
-        "<br><strong>Date Received:</strong> " +
-        (result.dateReceived || "");
-
-    } else {
-
-      document.getElementById("message").innerHTML =
-        '<p class="error">❌ IMEI NOT FOUND IN INVENTORY.</p>';
-
-    }
-
-    // Remove callback
-    delete window[callbackName];
-
-    const oldScript =
-      document.getElementById(callbackName);
-
-    if (oldScript) {
-      oldScript.remove();
-    }
-
-  };
-
-
-  // Create script request
-  const script =
-    document.createElement("script");
-
-  script.id = callbackName;
-
-  script.async = true;
-
-  script.src =
-    appsScriptUrl +
-    "?api=search" +
-    "&imei=" +
-    encodeURIComponent(imei) +
-    "&callback=" +
-    encodeURIComponent(callbackName);
-
-
-  // Detect loading error
-  script.onerror = function() {
-
-    if (finished) return;
-
-    finished = true;
 
     document.getElementById("message").innerHTML =
-      '<p class="error">❌ Cannot connect to Google Sheets.</p>';
-
-    delete window[callbackName];
-    script.remove();
-
-  };
+      '<p class="success">🔍 Checking Google Sheets...</p>';
 
 
-  document.body.appendChild(script);
+    // =========================
+    // CALLBACK
+    // =========================
+
+    window[callbackName] = function(result) {
+
+      finished = true;
+
+      console.log("Google Sheets result:", result);
 
 
-  // Timeout after 15 seconds
-  setTimeout(function() {
+      if (result.found) {
 
-    if (finished) return;
+        document.getElementById("message").innerHTML =
+          '<p class="success">✅ PHONE FOUND IN INVENTORY!</p>';
 
-    finished = true;
+        document.getElementById("scannedCode").innerHTML =
 
-    document.getElementById("message").innerHTML =
-      '<p class="error">⚠️ Google Sheets did not respond. Please try again.</p>';
+          "<strong>IMEI 1:</strong> " +
+          (result.imei1 || "") +
 
-    delete window[callbackName];
+          "<br><strong>IMEI 2:</strong> " +
+          (result.imei2 || "") +
 
-    const oldScript =
-      document.getElementById(callbackName);
+          "<br><strong>Serial:</strong> " +
+          (result.serial || "") +
 
-    if (oldScript) {
-      oldScript.remove();
-    }
+          "<br><strong>Product ID:</strong> " +
+          (result.productId || "") +
 
-  }, 15000);
+          "<br><strong>Brand:</strong> " +
+          (result.brand || "") +
 
-}
+          "<br><strong>Model:</strong> " +
+          (result.model || "") +
 
-  const appsScriptUrl =
-  "https://script.google.com/macros/s/AKfycbylq5dZebjqqWlyUtLdtxuo6068nc3K-qjS_MoiJAggvUZ_WIqsFloMMOZvN7KrNAEF/exec";
+          "<br><strong>Storage:</strong> " +
+          (result.storage || "") +
 
-  const callbackName =
-    "inventoryCallback_" + Date.now();
+          "<br><strong>Color:</strong> " +
+          (result.color || "") +
 
-  window[callbackName] = function(result) {
+          "<br><strong>Branch:</strong> " +
+          (result.branch || "") +
 
-    console.log("Google Sheets result:", result);
+          "<br><strong>Status:</strong> " +
+          (result.status || "") +
 
-    if (result.found) {
+          "<br><strong>Date Received:</strong> " +
+          (result.dateReceived || "");
+
+      }
+
+      else {
+
+        document.getElementById("message").innerHTML =
+          '<p class="error">❌ IMEI NOT FOUND IN INVENTORY.</p>';
+
+      }
+
+
+      // Remove callback
+      delete window[callbackName];
+
+      const oldScript =
+        document.getElementById(callbackName);
+
+      if (oldScript) {
+        oldScript.remove();
+      }
+
+    };
+
+
+    // =========================
+    // CREATE API REQUEST
+    // =========================
+
+    const script =
+      document.createElement("script");
+
+    script.id = callbackName;
+
+    script.async = true;
+
+    script.src =
+      appsScriptUrl +
+      "?api=search" +
+      "&imei=" +
+      encodeURIComponent(imei) +
+      "&callback=" +
+      encodeURIComponent(callbackName);
+
+
+    // =========================
+    // CONNECTION ERROR
+    // =========================
+
+    script.onerror = function() {
+
+      if (finished) return;
+
+      finished = true;
 
       document.getElementById("message").innerHTML =
-        '<p class="success">✅ PHONE FOUND IN INVENTORY!</p>';
+        '<p class="error">❌ Cannot connect to Google Sheets.</p>';
 
-      document.getElementById("scannedCode").innerHTML =
+      delete window[callbackName];
 
-        "<strong>IMEI 1:</strong> " +
-        result.imei1 +
+      script.remove();
 
-        "<br><strong>IMEI 2:</strong> " +
-        result.imei2 +
+    };
 
-        "<br><strong>Serial:</strong> " +
-        result.serial +
 
-        "<br><strong>Product ID:</strong> " +
-        result.productId +
+    document.body.appendChild(script);
 
-        "<br><strong>Brand:</strong> " +
-        result.brand +
 
-        "<br><strong>Model:</strong> " +
-        result.model +
+    // =========================
+    // TIMEOUT
+    // =========================
 
-        "<br><strong>Storage:</strong> " +
-        result.storage +
+    setTimeout(function() {
 
-        "<br><strong>Color:</strong> " +
-        result.color +
+      if (finished) return;
 
-        "<br><strong>Branch:</strong> " +
-        result.branch +
-
-        "<br><strong>Status:</strong> " +
-        result.status +
-
-        "<br><strong>Date Received:</strong> " +
-        result.dateReceived;
-
-    }
-
-    else {
+      finished = true;
 
       document.getElementById("message").innerHTML =
-        '<p class="error">❌ IMEI NOT FOUND IN INVENTORY.</p>';
+        '<p class="error">⚠️ Google Sheets did not respond. Please try again.</p>';
 
-    }
+      delete window[callbackName];
 
-    delete window[callbackName];
+      const oldScript =
+        document.getElementById(callbackName);
 
-    const scriptElement =
-      document.getElementById(callbackName);
+      if (oldScript) {
+        oldScript.remove();
+      }
 
-    if (scriptElement) {
-      scriptElement.remove();
-    }
+    }, 15000);
 
-  };
+  }
 
-
-  const script =
-    document.createElement("script");
-
-  script.id = callbackName;
-
-  script.src =
-    appsScriptUrl +
-    "?api=search" +
-    "&imei=" +
-    encodeURIComponent(imei) +
-    "&callback=" +
-    callbackName;
-
-  document.body.appendChild(script);
-
-}
 
   // =========================
   // STOP SCANNER
@@ -789,7 +700,7 @@ function searchGoogleSheet(imei) {
     }
 
   }
-
+  
 </script>
 
 </body>
