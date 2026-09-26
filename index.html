@@ -470,7 +470,7 @@
 
         stopScanner();
 
-        searchGoogleSheet(scannedIMEIs[0]);
+        showNewStockForm();
 
       }
 
@@ -652,6 +652,169 @@ function searchGoogleSheet(imei) {
 
 }
 
+// =========================
+// NEW STOCK FORM
+// =========================
+
+function showNewStockForm() {
+
+  document.getElementById("message").innerHTML =
+    '<p class="success">✅ BOTH IMEIs scanned successfully!</p>' +
+    '<p>Please enter the stock details below.</p>';
+
+  document.getElementById("scannedCode").innerHTML =
+
+    "<strong>IMEI 1:</strong> " +
+    scannedIMEIs[0] +
+
+    "<br><strong>IMEI 2:</strong> " +
+    scannedIMEIs[1] +
+
+    '<br><br>' +
+
+    '<label><strong>Serial Number:</strong></label>' +
+    '<input type="text" id="newSerial" ' +
+    'placeholder="Enter Serial Number" ' +
+    'style="width:100%;padding:12px;margin:8px 0;">' +
+
+    '<label><strong>Product ID:</strong></label>' +
+    '<select id="newProductId" ' +
+    'style="width:100%;padding:12px;margin:8px 0;">' +
+
+    '<option value="">Select Product</option>' +
+    '<option value="P001">P001 - Samsung A16</option>' +
+    '<option value="P002">P002 - Redmi Note 14</option>' +
+    '<option value="P003">P003 - Redmi Note 12 Pro 5G</option>' +
+
+    '</select>' +
+
+    '<label><strong>Branch:</strong></label>' +
+    '<select id="newBranch" ' +
+    'style="width:100%;padding:12px;margin:8px 0;">' +
+
+    '<option value="">Select Branch</option>' +
+    '<option value="B01">B01 - BANSALAN</option>' +
+    '<option value="B02">B02 - BUHANGIN</option>' +
+    '<option value="B03">B03 - CALINAN</option>' +
+    '<option value="B04">B04 - CAGAYAN DE ORO</option>' +
+    '<option value="B05">B05 - DIGOS</option>' +
+
+    '</select>' +
+
+    '<button onclick="saveNewStockFromPage()" ' +
+    'style="width:100%;padding:14px;margin-top:10px;font-size:18px;">' +
+    '💾 SAVE NEW STOCK' +
+    '</button>';
+}
+  // =========================
+// SAVE NEW STOCK
+// =========================
+
+function saveNewStockFromPage() {
+
+  const imei1 = scannedIMEIs[0] || '';
+  const imei2 = scannedIMEIs[1] || '';
+
+  const serial =
+    document.getElementById("newSerial").value.trim();
+
+  const productId =
+    document.getElementById("newProductId").value;
+
+  const branch =
+    document.getElementById("newBranch").value;
+
+  if (!serial) {
+    alert("Please enter Serial Number.");
+    return;
+  }
+
+  if (!productId) {
+    alert("Please select Product ID.");
+    return;
+  }
+
+  if (!branch) {
+    alert("Please select Branch.");
+    return;
+  }
+
+  document.getElementById("message").innerHTML =
+    '<p class="success">💾 Saving new stock to Google Sheets...</p>';
+
+  const callbackName = "inventorySaveCallback";
+
+  window[callbackName] = function(result) {
+
+    console.log("Save result:", result);
+
+    if (result.success) {
+
+      document.getElementById("message").innerHTML =
+        '<p class="success">✅ NEW STOCK SAVED SUCCESSFULLY!</p>';
+
+      document.getElementById("scannedCode").innerHTML =
+
+        "<strong>IMEI 1:</strong> " + imei1 +
+
+        "<br><strong>IMEI 2:</strong> " + imei2 +
+
+        "<br><strong>Serial:</strong> " + serial +
+
+        "<br><strong>Product ID:</strong> " + productId +
+
+        "<br><strong>Branch:</strong> " + branch +
+
+        "<br><br>📦 Added to Inventory.";
+
+    } else {
+
+      document.getElementById("message").innerHTML =
+        '<p class="error">❌ SAVE FAILED.</p>' +
+        '<p>' + (result.message || "Unknown error.") + '</p>';
+    }
+
+    delete window[callbackName];
+
+    const oldScript =
+      document.getElementById("saveStockScript");
+
+    if (oldScript) {
+      oldScript.remove();
+    }
+  };
+
+  const appsScriptUrl =
+    "https://script.google.com/macros/s/AKfycbylq5dZebjqqWlyUtLdtxuo6068nc3K-qjS_MoiJAggvUZ_WIqsFloMMOZvN7KrNAEF/exec";
+
+  const script =
+    document.createElement("script");
+
+  script.id = "saveStockScript";
+
+  script.src =
+    appsScriptUrl +
+    "?api=save" +
+    "&imei1=" + encodeURIComponent(imei1) +
+    "&imei2=" + encodeURIComponent(imei2) +
+    "&serial=" + encodeURIComponent(serial) +
+    "&productId=" + encodeURIComponent(productId) +
+    "&branch=" + encodeURIComponent(branch) +
+    "&callback=" + encodeURIComponent(callbackName);
+
+  script.onerror = function() {
+
+    document.getElementById("message").innerHTML =
+      '<p class="error">❌ Cannot connect to Google Sheets.</p>';
+
+    delete window[callbackName];
+
+    script.remove();
+  };
+
+  document.body.appendChild(script);
+}
+  
   // =========================
   // STOP SCANNER
   // =========================
