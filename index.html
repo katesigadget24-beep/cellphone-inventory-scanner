@@ -446,36 +446,36 @@
 
       if (scannedIMEIs.length === 1) {
 
-        document.getElementById("scannedCode").innerHTML =
-          "<strong>IMEI 1:</strong> " +
-          scannedIMEIs[0];
+  document.getElementById("scannedCode").innerHTML =
+    "<strong>IMEI 1:</strong> " + scannedIMEIs[0];
 
-        document.getElementById("message").innerHTML =
-          '<p class="success">✅ IMEI 1 scanned! Now scan IMEI 2.</p>';
+  document.getElementById("message").innerHTML =
+    '<p class="success">✅ IMEI 1 scanned!</p>' +
+    '<p>You can scan IMEI 2, or continue with single IMEI.</p>' +
 
-      }
+    '<button onclick="continueSingleIMEI()" ' +
+    'style="width:100%;padding:14px;margin-top:10px;font-size:18px;">' +
+    '📱 CONTINUE WITH SINGLE IMEI' +
+    '</button>';
 
-      else if (scannedIMEIs.length === 2) {
+} else if (scannedIMEIs.length === 2) {
 
-        document.getElementById("scannedCode").innerHTML =
+  document.getElementById("scannedCode").innerHTML =
+    "<strong>IMEI 1:</strong> " +
+    scannedIMEIs[0] +
 
-          "<strong>IMEI 1:</strong> " +
-          scannedIMEIs[0] +
+    "<br><strong>IMEI 2:</strong> " +
+    scannedIMEIs[1];
 
-          "<br><strong>IMEI 2:</strong> " +
-          scannedIMEIs[1];
+  document.getElementById("message").innerHTML =
+    '<p class="success">✅ BOTH IMEIs scanned successfully!</p>' +
+    '<p>Please enter the stock details below.</p>';
 
-        document.getElementById("message").innerHTML =
-          '<p class="success">✅ BOTH IMEIs scanned successfully!<br>🔍 Checking Google Sheets...</p>';
+  stopScanner();
 
-        stopScanner();
-
-        showNewStockForm();
-
-      }
-
-    }
-
+  showNewStockForm();
+}
+}
 
     // =========================
     // SOLD / TRANSFER / DEFECTIVE
