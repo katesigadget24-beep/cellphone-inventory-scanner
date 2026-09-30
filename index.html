@@ -651,7 +651,17 @@ function searchGoogleSheet(imei) {
   }, 15000);
 
 }
+function continueSingleIMEI() {
 
+  stopScanner();
+
+  document.getElementById("message").innerHTML =
+    '<p class="success">✅ Single IMEI selected.</p>' +
+    '<p>Please enter the stock details below.</p>';
+
+  showNewStockForm();
+}
+  
 // =========================
 // NEW STOCK FORM
 // =========================
@@ -664,13 +674,15 @@ function showNewStockForm() {
 
   document.getElementById("scannedCode").innerHTML =
 
-    "<strong>IMEI 1:</strong> " +
-    scannedIMEIs[0] +
+"<strong>IMEI 1:</strong> " +
+scannedIMEIs[0] +
 
-    "<br><strong>IMEI 2:</strong> " +
-    scannedIMEIs[1] +
+(scannedIMEIs[1]
+  ? "<br><strong>IMEI 2:</strong> " + scannedIMEIs[1]
+  : "<br><strong>IMEI 2:</strong> N/A - Single IMEI"
+) +
 
-    '<br><br>' +
+'<br><br>' +
 
     '<label><strong>Serial Number:</strong></label>' +
     '<input type="text" id="newSerial" ' +
