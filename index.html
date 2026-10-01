@@ -684,6 +684,22 @@ scannedIMEIs[0] +
 
 '<br><br>' +
 
+    '<label><strong>IMEI 1:</strong></label>' +
+'<input type="text" id="newImei1" ' +
+'value="' + (scannedIMEIs[0] || '') + '" ' +
+'placeholder="Enter IMEI 1 manually" ' +
+'inputmode="numeric" ' +
+'style="width:100%;padding:12px;margin:8px 0;">' +
+
+'<label><strong>IMEI 2:</strong> <small>(optional)</small></label>' +
+'<input type="text" id="newImei2" ' +
+'value="' + (scannedIMEIs[1] || '') + '" ' +
+'placeholder="Enter IMEI 2 manually if available" ' +
+'inputmode="numeric" ' +
+'style="width:100%;padding:12px;margin:8px 0;">' +
+
+'<br>' +
+
     '<label><strong>Serial Number:</strong></label>' +
     '<input type="text" id="newSerial" ' +
     'placeholder="Enter Serial Number" ' +
@@ -724,8 +740,11 @@ scannedIMEIs[0] +
 
 function saveNewStockFromPage() {
 
-  const imei1 = scannedIMEIs[0] || '';
-  const imei2 = scannedIMEIs[1] || '';
+  const imei1 =
+  document.getElementById("newImei1").value.trim();
+
+const imei2 =
+  document.getElementById("newImei2").value.trim();
 
   const serial =
     document.getElementById("newSerial").value.trim();
@@ -736,6 +755,21 @@ function saveNewStockFromPage() {
   const branch =
     document.getElementById("newBranch").value;
 
+    if (!imei1) {
+    alert("Please enter IMEI 1.");
+    return;
+  }
+
+  if (!/^\d{15}$/.test(imei1)) {
+    alert("IMEI 1 must contain exactly 15 digits.");
+    return;
+  }
+
+  if (imei2 && !/^\d{15}$/.test(imei2)) {
+    alert("IMEI 2 must contain exactly 15 digits.");
+    return;
+  }
+  
   if (!serial) {
     alert("Please enter Serial Number.");
     return;
