@@ -442,21 +442,33 @@
     // NEW STOCK
     // =========================
 
-    if (currentMode === "NEW STOCK") {
-
-      if (scannedIMEIs.length === 1) {
+    if (scannedIMEIs.length === 1) {
 
   document.getElementById("scannedCode").innerHTML =
-    "<strong>IMEI 1:</strong> " + scannedIMEIs[0];
+    "<strong>IMEI 1:</strong> " + scannedIMEIs[0] +
+    '<br><br>' +
+    '<label><strong>IMEI 1:</strong></label>' +
+    '<input type="text" id="manualImei1" ' +
+    'value="' + scannedIMEIs[0] + '" ' +
+    'placeholder="Enter IMEI 1 manually" ' +
+    'inputmode="numeric" ' +
+    'style="width:100%;padding:12px;margin:8px 0;">' +
+
+    '<label><strong>IMEI 2:</strong> <small>(optional)</small></label>' +
+    '<input type="text" id="manualImei2" ' +
+    'placeholder="Enter IMEI 2 manually if available" ' +
+    'inputmode="numeric" ' +
+    'style="width:100%;padding:12px;margin:8px 0;">';
 
   document.getElementById("message").innerHTML =
     '<p class="success">✅ IMEI 1 scanned!</p>' +
-    '<p>You can scan IMEI 2, or continue with single IMEI.</p>' +
-
+    '<p>You can edit the IMEI manually if the barcode is unclear.</p>' +
     '<button onclick="continueSingleIMEI()" ' +
     'style="width:100%;padding:14px;margin-top:10px;font-size:18px;">' +
     '📱 CONTINUE WITH SINGLE IMEI' +
     '</button>';
+
+}
 
 } else if (scannedIMEIs.length === 2) {
 
