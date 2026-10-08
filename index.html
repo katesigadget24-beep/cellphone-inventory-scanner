@@ -199,6 +199,57 @@
 
   <div id="reader"></div>
 
+<!-- MANUAL IMEI SEARCH -->
+
+<div style="
+  margin-top:20px;
+  padding:15px;
+  background:#f8f9fa;
+  border-radius:10px;
+">
+
+  <div style="
+    font-weight:bold;
+    font-size:18px;
+    margin-bottom:10px;
+  ">
+    ⌨️ ENTER IMEI MANUALLY
+  </div>
+
+  <input
+    type="text"
+    id="manualSearchIMEI"
+    placeholder="Enter 15-digit IMEI"
+    maxlength="15"
+    inputmode="numeric"
+    style="
+      width:100%;
+      box-sizing:border-box;
+      padding:14px;
+      font-size:17px;
+      border:1px solid #ccc;
+      border-radius:8px;
+    "
+  >
+
+  <button
+    onclick="manualSearchIMEI()"
+    style="
+      width:100%;
+      padding:14px;
+      margin-top:10px;
+      background:#1976d2;
+      color:white;
+      border:none;
+      border-radius:8px;
+      font-size:17px;
+      font-weight:bold;
+    "
+  >
+    🔎 SEARCH UNIT
+  </button>
+
+</div>
 
   <div class="result">
 
@@ -530,6 +581,46 @@
 // SEARCH GOOGLE SHEETS
 // =========================
 
+// =========================
+// MANUAL IMEI SEARCH
+// =========================
+
+function manualSearchIMEI() {
+
+  const input =
+    document.getElementById("manualSearchIMEI");
+
+  const imei =
+    input.value.trim();
+
+  if (!imei) {
+
+    document.getElementById("message").innerHTML =
+      '<p class="error">⚠️ Please enter an IMEI.</p>';
+
+    return;
+  }
+
+  if (!/^\d{15}$/.test(imei)) {
+
+    document.getElementById("message").innerHTML =
+      '<p class="error">⚠️ IMEI must contain exactly 15 digits.</p>';
+
+    return;
+  }
+
+  // Stop camera if currently running
+  stopScanner();
+
+  document.getElementById("scannedCode").innerHTML =
+    "<strong>IMEI:</strong> " + imei;
+
+  document.getElementById("message").innerHTML =
+    '<p class="success">🔍 Checking Google Sheets...</p>';
+
+  searchGoogleSheet(imei);
+}
+  
 function searchGoogleSheet(imei) {
 
   const appsScriptUrl =
