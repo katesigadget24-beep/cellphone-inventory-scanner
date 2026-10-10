@@ -71,11 +71,55 @@
       color: white;
     }
 
-    #reader {
-      width: 100%;
-      margin: 15px auto;
-    }
+    
+#reader {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 15px auto;
+  overflow: hidden;
+}
 
+#reader video {
+  width: 100% !important;
+  max-height: 300px !important;
+  object-fit: cover;
+  display: block;
+}
+
+#reader__scan_region {
+  min-height: 0 !important;
+}
+
+#reader__dashboard {
+  display: none !important;
+}
+
+
+#reader::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  width: 80%;
+  height: 3px;
+  top: 50%;
+  background: #00ff66;
+  box-shadow: 0 0 8px #00ff66;
+  pointer-events: none;
+  z-index: 10;
+  animation: scanLine 2s linear infinite alternate;
+}
+
+@keyframes scanLine {
+  from {
+    top: 20%;
+  }
+  to {
+    top: 80%;
+  }
+}
+
+    
     button {
       width: 100%;
       padding: 15px;
