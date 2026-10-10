@@ -110,15 +110,20 @@
   animation: scanLine 2s linear infinite alternate;
 }
 
-@keyframes scanLine {
-  from {
-    top: 20%;
-  }
-  to {
-    top: 80%;
-  }
+#reader::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border: 3px solid #00ff66;
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 10;
 }
 
+@keyframes scanLine {
+  from { top: 20%; }
+  to { top: 80%; }
+}
     
     button {
       width: 100%;
