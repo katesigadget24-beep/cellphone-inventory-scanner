@@ -364,7 +364,12 @@
       scanner = new Html5Qrcode("reader", {
 
        formatsToSupport: [
-  Html5QrcodeSupportedFormats.CODE_128
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.CODE_93,
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.ITF
 ]
         
 });
@@ -415,14 +420,28 @@
 
       const config = {
 
-        fps: 10,
+  fps: 15,
 
-        qrbox: {
-          width: 300,
-          height: 150
-        }
+  qrbox: {
+    width: 350,
+    height: 200
+  },
 
-      };
+  aspectRatio: 1.7777778,
+
+  videoConstraints: {
+    facingMode: {
+      ideal: "environment"
+    },
+    width: {
+      ideal: 1280
+    },
+    height: {
+      ideal: 720
+    }
+  }
+
+};
 
 
       await scanner.start(
