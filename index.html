@@ -417,34 +417,12 @@
 
       }
 
-
-      const config = {
-
-  fps: 15,
-
-  qrbox: {
-    width: 350,
-    height: 200
-  },
-
-  aspectRatio: 1.7777778,
-
-  videoConstraints: {
-    facingMode: {
-      ideal: "environment"
-    },
-    width: {
-      ideal: 1280
-    },
-    height: {
-      ideal: 720
-    }
-  }
-
+const config = {
+  fps: 10,
+  aspectRatio: 1.7777778
 };
 
-
-      await scanner.start(
+       await scanner.start(
 
         cameraId,
 
