@@ -148,38 +148,119 @@
     .selected-mode {
       margin-top: 15px;
       padding: 12px;
-      background: #eef5ff;
-      border-radius: 8px;
-      text-align: center;
-      font-weight: bold;
+      function saveNewStockFromApi(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('PRODUCT MASTER');
+    const priceSheet = ss.getSheetByName('PRICE HISTORY');
+
+    if (!sheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'PRODUCT MASTER sheet not found.'
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    .result {
-      margin-top: 20px;
-      padding: 15px;
-      background: #e8f1ff;
-      border-radius: 10px;
-      font-size: 18px;
-      word-break: break-all;
+    params = params || {};
+
+    const imei1 = String(params.imei1 || '').trim();
+    const imei2 = String(params.imei2 || '').trim();
+    const serial = String(params.serial || '').trim();
+    const productId = String(params.productId || '').trim();
+    const brand = String(params.brand || '').trim();
+    const model = String(params.model || '').trim();
+    const storage = String(params.storage || '').trim();
+    const color = String(params.color || '').trim();
+    const costPrice = String(params.costPrice || '').trim();
+    const sellingPrice = String(params.sellingPrice || '').trim();
+    const supplier = String(params.supplier || '').trim();
+    const drNo = String(params.drNo || '').trim();
+    const branch = String(params.branch || '').trim();
+
+    if (!imei1 || !serial || !productId || !branch) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'Please complete IMEI 1, Serial Number, Product ID, and Branch.'
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    .success {
-      color: #16803c;
-      font-weight: bold;
+    if (!/^\d{15}$/.test(imei1)) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'IMEI 1 must contain exactly 15 digits.'
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    .error {
-      color: #d32f2f;
-      font-weight: bold;
+    if (imei2 && !/^\d{15}$/.test(imei2)) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'IMEI 2 must contain exactly 15 digits.'
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
-  </style>
+    // Prevent duplicate IMEI 1 or IMEI 2.
+    const existing = sheet.getDataRange().getDisplayValues();
 
-</head>
+    for (let i = 1; i < existing.length; i++) {
+      if (
+        (imei1 && (existing[i][0] === imei1 || existing[i][1] === imei1)) ||
+        (imei2 && (existing[i][0] === imei2 || existing[i][1] === imei2))
+      ) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false,
+          message: 'This IMEI already exists in PRODUCT MASTER.'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
 
+    const now = new Date();
 
-<body>
+    sheet.appendRow([
+      imei1,                              // A IMEI1
+      imei2,                              // B IMEI2
+      serial,                             // C Serial Number
+      productId,                          // D Product ID
+      brand,                              // E Brand
+      model,                              // F Model
+      storage,                            // G Storage
+      color,                              // H Color
+      costPrice === '' ? '' : Number(costPrice),       // I Cost Price
+      sellingPrice === '' ? '' : Number(sellingPrice), // J Selling Price
+      supplier,                           // K Supplier
+      drNo,                               // L DR No.
+      now,                                // M Date Purchase
+      now,                                // N Date Received
+      branch,                             // O Branch
+      'IN STOCK'                           // P Status
+    ]);
 
+    // Save price history when the history sheet is available.
+    if (priceSheet && (costPrice !== '' || sellingPrice !== '')) {
+      priceSheet.appendRow([
+        now,
+        [brand, model, storage, color].filter(Boolean).join(' '),
+        brand,
+        model,
+        storage,
+        color,
+        costPrice === '' ? '' : Number(costPrice),
+        sellingPrice === '' ? '' : Number(sellingPrice),
+        supplier
+      ]);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'New stock saved successfully.'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
 <div class="container">
 
   <h1>📱 Cell Phone Inventory</h1>
@@ -889,7 +970,7 @@ scannedIMEIs[0] +
 // SAVE NEW STOCK
 // =========================
 
-function saveNewStockFromPage() {
+ {
 
   const imei1 =
   document.getElementById("newImei1").value.trim();
