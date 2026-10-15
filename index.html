@@ -20,6 +20,9 @@ input[readonly]{background:#eef1f6}.row{display:flex;gap:8px}.row>*:first-child{
 .ok{background:#2e7d32}.bad{background:#c62828}.warn{background:#ef6c00}
 #toast{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));padding:14px;border-radius:12px;color:#fff;font-weight:700;display:none;z-index:9}
 #scan{position:fixed;inset:0;background:#000d;display:none;z-index:8;padding:20px;flex-direction:column;justify-content:center;gap:12px}
+#selfie{position:fixed;inset:0;background:#000e;display:none;z-index:10;padding:20px;flex-direction:column;justify-content:center;gap:12px}
+#sv{width:100%;max-height:60vh;object-fit:cover;border-radius:12px;background:#000;transform:scaleX(-1)}
+#zoomBox{display:none;align-items:center;gap:10px;color:#fff;font-weight:700}#zoomBox input{flex:1;padding:0}#zoomBox button{width:46px;height:46px;border:0;border-radius:50%;background:#1976d2;color:#fff;font-size:24px;font-weight:700}
 #reader{background:#000;border-radius:12px;overflow:hidden}dialog{border:0;border-radius:14px;width:92%;max-width:420px}
 </style></head><body><main>
 <div class="row" style="align-items:center"><div><h1>📱 Cell Phone Inventory</h1><small id="who"></small></div><button class="btn sm gray" onclick="cfgDlg.showModal()">⚙️</button></div>
@@ -36,20 +39,21 @@ input[readonly]{background:#eef1f6}.row{display:flex;gap:8px}.row>*:first-child{
 <div class="card" id="result" style="display:none"></div>
 <div class="card" id="formCard" style="display:none"><div id="unitPick"></div><div id="fields"></div><button class="btn" id="saveBtn" onclick="save()">💾 SAVE TO GOOGLE SHEET</button></div>
 </main>
-<div id="scan"><div id="reader"></div><div style="color:#fff;text-align:center" id="scanMsg">Point at the barcode on the box</div><button class="btn gray" onclick="stopScan()">✖ CLOSE</button></div>
+<div id="scan"><div id="reader"></div><div id="zoomBox"><button onclick="stepZoom(-1)">−</button><input id="zoom" type="range" oninput="setZoom(this.value)"><button onclick="stepZoom(1)">+</button><span id="zoomVal" style="min-width:42px"></span></div><div style="color:#fff;text-align:center" id="scanMsg">Point at the barcode on the box</div><button class="btn gray" onclick="stopScan()">✖ CLOSE</button></div>
+<div id="selfie"><video id="sv" autoplay playsinline muted></video><div style="color:#fff;text-align:center">Look at the camera to log your photo</div><button class="btn" id="snapBtn">📸 TAKE PHOTO &amp; SAVE</button><button class="btn gray" id="snapCancel">✖ CANCEL</button></div>
 <div id="toast"></div>
 <dialog id="cfgDlg"><h3>Settings</h3>
-<label>Apps Script Web App URL</label><input id="cUrl"><label>Passcode</label><input id="cPass" type="password"><label>Your name (encoder)</label><input id="cEnc">
+<label>Passcode</label><input id="cPass" type="password"><label>Your name (encoder)</label><input id="cEnc">
 <button class="btn" onclick="saveCfg()">SAVE</button></dialog>
 
 <script>
-// You can hard-code the URL here, or just paste it in the ⚙️ settings once.
+// Paste your Apps Script Web App URL here (it is no longer in the ⚙️ settings).
 const DEFAULT_URL = '';
 const MODES = {NEW:'📦 NEW STOCK',SOLD:'💰 SOLD',TRANSFER:'🔄 TRANSFER',DEFECTIVE:'⚠️ DEFECTIVE',BUYBACK:'↩️ BUYBACK',CHECK:'🔎 CHECK'};
 const RULES = {SOLD:['IN STOCK'],TRANSFER:['IN STOCK'],DEFECTIVE:['IN STOCK','SOLD','BUYBACK'],BUYBACK:['SOLD']};
 // [key, label, type, source]  type: text|number|date|select|ro
 const F = {
- NEW:[['date_purchase','Date Purchase','date'],['date_received','Date Received','date'],['dr','DR No.','text'],['supplier','Supplier','text','suppliers'],['cost','Cost Price','number'],['price','Selling Price','number'],['branch','Branch','select','branches']],
+ NEW:[['date_purchase','Date Purchase','date'],['date_received','Date Received','date'],['supplier','Supplier','text','suppliers'],['cost','Cost Price','number'],['price','Selling Price','number'],['branch','Branch','select','branches']],
  SOLD:[['date','Date Sold','date'],['si','SI No.','text'],['branch','Branch','select','branches'],['price','Cellphone Selling Price','number'],['bundle','Bundle Amount','number'],['inclusions','Bundle Inclusions','text'],['total','Total Sales Amount','ro'],['customer','Customer','text'],['paymode','Payment Mode','select','paymodes'],['financing','Financing Company','select','financing'],['down','Down Payment','number'],['received','Amount Received','number'],['balance','Balance','ro'],['paystatus','Payment Status','select','paystatus'],['remarks','Remarks','text']],
  TRANSFER:[['date','Date Transfer','date'],['from','From Branch','ro'],['to','To Branch','select','branches'],['remarks','Remarks','text']],
  DEFECTIVE:[['date','Date Defective','date'],['branch','Branch','select','branches'],['reason','Defective Reason','text'],['remarks','Remarks','text']],
@@ -57,21 +61,21 @@ const F = {
 };
 const $ = id => document.getElementById(id);
 let cfg = {}, mode = 'CHECK', unit = null, picked = '';
-const conf = () => ({url: localStorage.url || DEFAULT_URL, pass: localStorage.pass || '', enc: localStorage.enc || ''});
+const conf = () => ({url: DEFAULT_URL, pass: localStorage.pass || '', enc: localStorage.enc || ''});
 const today = () => {const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10)};
 function toast(m, good=true){const t=$('toast');t.textContent=m;t.style.background=good?'#2e7d32':'#c62828';t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',3500)}
 const luhn = s => {let t=0;for(let i=0;i<15;i++){let d=+s[14-i];if(i%2){d*=2;if(d>9)d-=9}t+=d}return t%10===0};
 
 async function api(action, body, q){
-  const c = conf(); if(!c.url){cfgDlg.showModal();throw Error('Set the Web App URL first')}
+  const c = conf(); if(!c.url){throw Error('Web App URL is not set in index.html (DEFAULT_URL)')}
   const r = body ? await fetch(c.url,{method:'POST',body:JSON.stringify({...body,action,pass:c.pass})})
                  : await fetch(c.url+'?'+new URLSearchParams({action,pass:c.pass,...q}));
   const j = await r.json(); if(!j.ok) throw Error(j.msg||'Error'); return j;
 }
-function saveCfg(){localStorage.url=$('cUrl').value.trim();localStorage.pass=$('cPass').value;localStorage.enc=$('cEnc').value.trim();cfgDlg.close();init()}
+function saveCfg(){localStorage.pass=$('cPass').value;localStorage.enc=$('cEnc').value.trim();cfgDlg.close();init()}
 
 async function init(){
-  const c = conf(); $('cUrl').value=c.url;$('cPass').value=c.pass;$('cEnc').value=c.enc;$('who').textContent=c.enc?'Encoder: '+c.enc:'Cell Phone Inventory Scanner';
+  const c = conf(); $('cPass').value=c.pass;$('cEnc').value=c.enc;$('who').textContent=c.enc?'Encoder: '+c.enc:'Cell Phone Inventory Scanner';
   $('modes').innerHTML = Object.keys(MODES).map(m=>`<button data-m="${m}" onclick="setMode('${m}')">${MODES[m]}</button>`).join('');
   setMode(mode);
   try{cfg = await api('setup')}catch(e){toast(e.message,false)}
@@ -135,12 +139,31 @@ async function save(){
     body.imei2=$('imei2').value.trim();body.serial=$('serial').value.trim();body.unit=picked;
   }
   F[mode].forEach(([k])=>body[k]=$('f_'+k).value);
+  try{body.photo=await captureFace()}catch(e){return toast(e.message,false)}
   $('saveBtn').disabled=true;
   try{
     const r=await api('save',body);toast('✅ '+r.msg);
     ['imei1','imei2','serial'].forEach(i=>$(i).value='');setMode(mode);
   }catch(e){toast(e.message,false)}
   $('saveBtn').disabled=false;
+}
+
+// ---------- encoder face photo ----------
+async function captureFace(){
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:640}},audio:false})}
+  catch(e){throw Error('Camera blocked — allow camera access to take your photo')}
+  const v=$('sv');v.srcObject=stream;$('selfie').style.display='flex';
+  return new Promise((resolve,reject)=>{
+    const done=(fn,val)=>{stream.getTracks().forEach(t=>t.stop());v.srcObject=null;$('selfie').style.display='none';fn(val)};
+    $('snapBtn').onclick=()=>{
+      const w=v.videoWidth,h=v.videoHeight;if(!w)return;
+      const k=Math.min(1,480/w),c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);
+      c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+      done(resolve,c.toDataURL('image/jpeg',0.7));
+    };
+    $('snapCancel').onclick=()=>done(reject,Error('Photo cancelled — not saved'));
+  });
 }
 
 // ---------- camera scanner ----------
@@ -150,8 +173,25 @@ async function scanInto(id,kind){
   qr=new Html5Qrcode('reader',{formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.ITF],experimentalFeatures:{useBarCodeDetectorIfSupported:true},verbose:false});
   try{
     await qr.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>({width:Math.floor(w*0.92),height:Math.floor(Math.min(h*0.5,170))}),videoConstraints:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080},focusMode:'continuous'}},onScan,()=>{});
+    setupZoom();
   }catch(e){stopScan();toast('Camera blocked — allow camera access in Safari settings',false)}
 }
+let zf=null;
+function setupZoom(){
+  $('zoomBox').style.display='none';zf=null;
+  try{
+    const z=qr.getRunningTrackCameraCapabilities().zoomFeature();
+    if(!z.isSupported()){$('scanMsg').textContent+=' (zoom not supported here — hold the phone 15–20 cm from the barcode)';return}
+    zf=z;const s=$('zoom');s.min=z.min();s.max=z.max();s.step=z.step()||0.1;
+    $('zoomBox').style.display='flex';
+    setZoom(Math.min(z.max(),Math.max(z.min(),2)));   // start at 2x
+  }catch(e){}
+}
+function setZoom(v){
+  if(!zf)return;v=+v;$('zoom').value=v;$('zoomVal').textContent=v.toFixed(1)+'x';
+  try{Promise.resolve(zf.apply(v)).catch(()=>{})}catch(e){}
+}
+function stepZoom(d){const s=$('zoom');setZoom(Math.min(+s.max,Math.max(+s.min,+s.value+d*Math.max(+s.step,0.5))))}
 function onScan(text){
   let v=text.trim();
   if(target.kind==='imei'){v=v.replace(/\D/g,'');if(v.length!==15||!luhn(v)){$('scanMsg').textContent='Not an IMEI ('+text.slice(0,18)+') — keep scanning';return}}
@@ -160,7 +200,7 @@ function onScan(text){
   if(id==='imei1'&&mode!=='NEW')lookup();
 }
 async function stopScan(){
-  $('scan').style.display='none';
+  $('scan').style.display='none';$('zoomBox').style.display='none';zf=null;
   if(qr){try{await qr.stop()}catch(e){}try{qr.clear()}catch(e){}qr=null}
 }
 $('imei1').addEventListener('input',e=>{if(e.target.value.length===15&&mode!=='NEW')lookup()});
