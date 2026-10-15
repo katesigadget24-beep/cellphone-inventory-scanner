@@ -25,7 +25,7 @@ input[readonly]{background:#eef1f6}.row{display:flex;gap:8px}.row>*:first-child{
 #zoomBox{display:none;align-items:center;gap:10px;color:#fff;font-weight:700}#zoomBox input{flex:1;padding:0}#zoomBox button{width:46px;height:46px;border:0;border-radius:50%;background:#1976d2;color:#fff;font-size:24px;font-weight:700}
 #reader{background:#000;border-radius:12px;overflow:hidden}dialog{border:0;border-radius:14px;width:92%;max-width:420px}
 </style></head><body><main>
-<div class="row" style="align-items:center"><div><h1>📱 Cell Phone Inventory</h1><small id="who"></small></div><button class="btn sm gray" onclick="cfgDlg.showModal()">⚙️</button></div>
+<div class="row" style="align-items:center"><div><h1>📱 Cell Phone Inventory</h1><small id="who"></small></div><button class="btn sm gray" onclick="cfgDlg.showModal()">Log in</button></div>
 <div class="modes" id="modes"></div>
 <div class="card">
   <label>IMEI 1 <span id="hint" style="font-weight:400;color:#666"></span></label>
@@ -41,13 +41,13 @@ input[readonly]{background:#eef1f6}.row{display:flex;gap:8px}.row>*:first-child{
 <div id="scan"><div id="reader"></div><div id="zoomBox"><button onclick="stepZoom(-1)">−</button><input id="zoom" type="range" oninput="setZoom(this.value)"><button onclick="stepZoom(1)">+</button><span id="zoomVal" style="min-width:42px"></span></div><div style="color:#fff;text-align:center" id="scanMsg">Point at the barcode on the box</div><button class="btn gray" onclick="stopScan()">✖ CLOSE</button></div>
 <div id="selfie"><video id="sv" autoplay playsinline muted></video><div style="color:#fff;text-align:center">Look at the camera to log your photo</div><button class="btn" id="snapBtn">📸 TAKE PHOTO &amp; SAVE</button><button class="btn gray" id="snapCancel">✖ CANCEL</button></div>
 <div id="toast"></div>
-<dialog id="cfgDlg"><h3>Settings</h3>
+<dialog id="cfgDlg"><h3>Encoder Log in</h3>
 <label>Passcode</label><input id="cPass" type="password"><label>Your name (encoder)</label><input id="cEnc">
-<button class="btn" onclick="saveCfg()">SAVE</button></dialog>
+<button class="btn" onclick="saveCfg()">LOG IN</button></dialog>
 
 <script>
-// Paste your Apps Script Web App URL here (it is no longer in the ⚙️ settings).
-const DEFAULT_URL = '';
+// Paste your Apps Script Web App URL here (it is not asked for on the Log in screen).
+const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbzMTwBU_1xjNGguW08HPXjdrdmDrYTodXRsMooh_zyBHsiEzPPn4Z6_7k5bdIkwK6S-/exec';
 const MODES = {NEW:'📦 NEW STOCK',SOLD:'💰 SOLD',TRANSFER:'🔄 TRANSFER',DEFECTIVE:'⚠️ DEFECTIVE',BUYBACK:'↩️ BUYBACK',CHECK:'🔎 CHECK'};
 const RULES = {SOLD:['IN STOCK'],TRANSFER:['IN STOCK'],DEFECTIVE:['IN STOCK','SOLD','BUYBACK'],BUYBACK:['SOLD']};
 // [key, label, type, source]  type: text|number|date|select|ro
