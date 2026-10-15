@@ -23,9 +23,11 @@ input[readonly]{background:#eef1f6}.row{display:flex;gap:8px}.row>*:first-child{
 #selfie{position:fixed;inset:0;background:#000e;display:none;z-index:10;padding:20px;flex-direction:column;justify-content:center;gap:12px}
 #sv{width:100%;max-height:60vh;object-fit:cover;border-radius:12px;background:#000;transform:scaleX(-1)}
 #zoomBox{display:none;align-items:center;gap:10px;color:#fff;font-weight:700}#zoomBox input{flex:1;padding:0}#zoomBox button{width:46px;height:46px;border:0;border-radius:50%;background:#1976d2;color:#fff;font-size:24px;font-weight:700}
+#login{position:fixed;inset:0;background:#f1f4f9;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
+#login .card{width:100%;max-width:380px;margin:0;padding:22px}#lErr{color:#c62828;font-weight:700;font-size:14px;min-height:20px;margin-top:10px}
 #reader{background:#000;border-radius:12px;overflow:hidden}dialog{border:0;border-radius:14px;width:92%;max-width:420px}
 </style></head><body><main>
-<div class="row" style="align-items:center"><div><h1>📱 Cell Phone Inventory</h1><small id="who"></small></div><button class="btn sm gray" onclick="cfgDlg.showModal()">Log in</button></div>
+<div class="row" style="align-items:center"><div><h1>📱 Cell Phone Inventory</h1><small id="who"></small></div><button class="btn sm gray" onclick="logout()">Log out</button></div>
 <div class="modes" id="modes"></div>
 <div class="card">
   <label>IMEI 1 <span id="hint" style="font-weight:400;color:#666"></span></label>
@@ -41,9 +43,12 @@ input[readonly]{background:#eef1f6}.row{display:flex;gap:8px}.row>*:first-child{
 <div id="scan"><div id="reader"></div><div id="zoomBox"><button onclick="stepZoom(-1)">−</button><input id="zoom" type="range" oninput="setZoom(this.value)"><button onclick="stepZoom(1)">+</button><span id="zoomVal" style="min-width:42px"></span></div><div style="color:#fff;text-align:center" id="scanMsg">Point at the barcode on the box</div><button class="btn gray" onclick="stopScan()">✖ CLOSE</button></div>
 <div id="selfie"><video id="sv" autoplay playsinline muted></video><div style="color:#fff;text-align:center">Look at the camera to log your photo</div><button class="btn" id="snapBtn">📸 TAKE PHOTO &amp; SAVE</button><button class="btn gray" id="snapCancel">✖ CANCEL</button></div>
 <div id="toast"></div>
-<dialog id="cfgDlg"><h3>Encoder Log in</h3>
-<label>Passcode</label><input id="cPass" type="password"><label>Your name (encoder)</label><input id="cEnc">
-<button class="btn" onclick="saveCfg()">LOG IN</button></dialog>
+<div id="login"><div class="card">
+<h1 style="text-align:center">📱 Cell Phone Inventory</h1><p style="text-align:center;margin:0 0 6px"><small>Encoder log in</small></p>
+<label>Your name (encoder)</label><input id="lEnc" autocomplete="off" onkeydown="if(event.key==='Enter')$('lPass').focus()">
+<label>Passcode</label><input id="lPass" type="password" onkeydown="if(event.key==='Enter')doLogin()">
+<div id="lErr"></div><button class="btn" id="lBtn" onclick="doLogin()">LOG IN</button>
+</div></div>
 
 <script>
 // Paste your Apps Script Web App URL here (it is not asked for on the Log in screen).
@@ -69,15 +74,37 @@ async function api(action, body, q){
   const c = conf(); if(!c.url){throw Error('Web App URL is not set in index.html (DEFAULT_URL)')}
   const r = body ? await fetch(c.url,{method:'POST',body:JSON.stringify({...body,action,pass:c.pass})})
                  : await fetch(c.url+'?'+new URLSearchParams({action,pass:c.pass,...q}));
-  const j = await r.json(); if(!j.ok) throw Error(j.msg||'Error'); return j;
+  const j = await r.json();
+  if(!j.ok){ if(j.msg==='Wrong passcode' && $('login').style.display!=='flex'){clearAuth();showLogin('Wrong passcode — please log in again')} throw Error(j.msg||'Error') }
+  return j;
 }
-function saveCfg(){localStorage.pass=$('cPass').value;localStorage.enc=$('cEnc').value.trim();cfgDlg.close();init()}
-
-async function init(){
-  const c = conf(); $('cPass').value=c.pass;$('cEnc').value=c.enc;$('who').textContent=c.enc?'Encoder: '+c.enc:'Cell Phone Inventory Scanner';
+const clearAuth = () => {localStorage.removeItem('pass');localStorage.removeItem('enc')};
+function showLogin(msg){$('login').style.display='flex';$('lErr').textContent=msg||'';$('lPass').value='';$('lEnc').value='';$('lBtn').disabled=false}
+async function doLogin(){
+  const enc=$('lEnc').value.trim(),pass=$('lPass').value;
+  if(!enc||!pass){$('lErr').textContent='Enter your name and passcode';return}
+  $('lBtn').disabled=true;$('lErr').textContent='Checking…';
+  localStorage.pass=pass;localStorage.enc=enc;
+  try{cfg=await api('setup');$('login').style.display='none';startApp()}
+  catch(e){clearAuth();$('lErr').textContent=e.message}
+  $('lBtn').disabled=false;
+}
+function logout(){
+  clearAuth();stopScan();cfg={};unit=null;picked='';
+  ['imei1','imei2'].forEach(i=>$(i).value='');
+  mode='CHECK';setMode('CHECK');$('who').textContent='';
+  showLogin();
+}
+function startApp(){
+  $('who').textContent='Encoder: '+conf().enc;
   $('modes').innerHTML = Object.keys(MODES).map(m=>`<button data-m="${m}" onclick="setMode('${m}')">${MODES[m]}</button>`).join('');
   setMode(mode);
-  try{cfg = await api('setup')}catch(e){toast(e.message,false)}
+}
+async function init(){
+  const c=conf(); if(!c.pass||!c.enc){showLogin();return}
+  $('login').style.display='none';
+  try{cfg=await api('setup')}catch(e){toast(e.message,false)}
+  if($('login').style.display!=='flex') startApp();
 }
 function setMode(m){
   mode=m;unit=null;picked='';
