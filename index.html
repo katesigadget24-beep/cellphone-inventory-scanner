@@ -78,7 +78,7 @@ async function api(action, body, q){
   if(!j.ok){ if(j.msg==='Wrong passcode' && $('login').style.display!=='flex'){clearAuth();showLogin('Wrong passcode — please log in again')} throw Error(j.msg||'Error') }
   return j;
 }
-const clearAuth = () => {localStorage.removeItem('pass');localStorage.removeItem('enc')};
+const clearAuth = () => {localStorage.removeItem('pass');localStorage.removeItem('enc');localStorage.removeItem('last')};
 function showLogin(msg){$('login').style.display='flex';$('lErr').textContent=msg||'';$('lPass').value='';$('lBtn').disabled=false;loadEncoders()}
 async function loadEncoders(){
   const sel=$('lEnc');
@@ -97,23 +97,36 @@ async function doLogin(){
   const enc=$('lEnc').value.trim(),pass=$('lPass').value;
   if(!enc||!pass){$('lErr').textContent='Enter your name and passcode';return}
   $('lBtn').disabled=true;$('lErr').textContent='Checking…';
-  localStorage.pass=pass;localStorage.enc=enc;
+  localStorage.pass=pass;localStorage.enc=enc;localStorage.last=Date.now();
   try{cfg=await api('setup');$('login').style.display='none';startApp()}
   catch(e){clearAuth();$('lErr').textContent=e.message}
   $('lBtn').disabled=false;
 }
-function logout(){
+function logout(msg){
+  if($('selfie').style.display==='flex'&&$('snapCancel').onclick)$('snapCancel').onclick();
   clearAuth();stopScan();cfg={};unit=null;picked='';
   ['imei1','imei2'].forEach(i=>$(i).value='');
   mode='CHECK';setMode('CHECK');$('who').textContent='';
-  showLogin();
+  showLogin(typeof msg==='string'?msg:'');
 }
+// ---------- auto logout after 10 minutes of inactivity ----------
+const IDLE_MS = 10*60*1000;
+const touchActive = () => {if(localStorage.pass) localStorage.last = Date.now()};
+function checkIdle(){
+  if(!localStorage.pass||!localStorage.enc) return;
+  const last = +localStorage.last || Date.now();
+  if(Date.now()-last >= IDLE_MS) logout('Logged out after 10 minutes of inactivity');
+}
+['pointerdown','keydown','touchstart','scroll','input','click'].forEach(ev=>document.addEventListener(ev,touchActive,{passive:true,capture:true}));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkIdle()});
+setInterval(checkIdle,15000);
 function startApp(){
   $('who').textContent='Encoder: '+conf().enc;
   $('modes').innerHTML = Object.keys(MODES).map(m=>`<button data-m="${m}" onclick="setMode('${m}')">${MODES[m]}</button>`).join('');
   setMode(mode);
 }
 async function init(){
+  if(localStorage.pass&&Date.now()-(+localStorage.last||0)>=IDLE_MS){clearAuth();showLogin('Logged out after 10 minutes of inactivity');return}
   const c=conf(); if(!c.pass||!c.enc){showLogin();return}
   $('login').style.display='none';
   try{cfg=await api('setup')}catch(e){toast(e.message,false)}
