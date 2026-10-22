@@ -45,7 +45,7 @@ input[readonly]{background:#eef1f6}.row{display:flex;gap:8px}.row>*:first-child{
 <div id="toast"></div>
 <div id="login"><div class="card">
 <h1 style="text-align:center">📱 Cell Phone Inventory</h1><p style="text-align:center;margin:0 0 6px"><small>Encoder log in</small></p>
-<label>Your name (encoder)</label><input id="lEnc" autocomplete="off" onkeydown="if(event.key==='Enter')$('lPass').focus()">
+<label>Your name (encoder)</label><select id="lEnc" onchange="if(this.value)$('lPass').focus()"><option value="">Loading encoders…</option></select>
 <label>Passcode</label><input id="lPass" type="password" onkeydown="if(event.key==='Enter')doLogin()">
 <div id="lErr"></div><button class="btn" id="lBtn" onclick="doLogin()">LOG IN</button>
 </div></div>
@@ -79,7 +79,20 @@ async function api(action, body, q){
   return j;
 }
 const clearAuth = () => {localStorage.removeItem('pass');localStorage.removeItem('enc')};
-function showLogin(msg){$('login').style.display='flex';$('lErr').textContent=msg||'';$('lPass').value='';$('lEnc').value='';$('lBtn').disabled=false}
+function showLogin(msg){$('login').style.display='flex';$('lErr').textContent=msg||'';$('lPass').value='';$('lBtn').disabled=false;loadEncoders()}
+async function loadEncoders(){
+  const sel=$('lEnc');
+  const fill=list=>{sel.innerHTML='<option value="">— Select your name —</option>'+list.map(n=>`<option>${n}</option>`).join('')};
+  try{
+    const j=await api('encoders');
+    localStorage.encList=JSON.stringify(j.encoders||[]);
+    fill(j.encoders||[]);
+  }catch(e){
+    let old=[];try{old=JSON.parse(localStorage.encList||'[]')}catch(_){}
+    fill(old);
+    $('lErr').textContent=old.length?'Offline list shown — '+e.message:'Could not load encoder list: '+e.message;
+  }
+}
 async function doLogin(){
   const enc=$('lEnc').value.trim(),pass=$('lPass').value;
   if(!enc||!pass){$('lErr').textContent='Enter your name and passcode';return}
