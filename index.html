@@ -59,16 +59,16 @@ h1,small,main>.row small{text-shadow:none}main>.row:first-child{background:#fff;
 
 <script>
 // Paste your Apps Script Web App URL here (it is not asked for on the Log in screen).
-const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbwrCobtBVpHUFJB8Aj7Af4CYg7RaSGsRmZX9ovDcJGydoFGH_73rjLqAQuhEZ1HrNY/exec';
+const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbyxvRTwp_3hBj7LM2WfDG7hk2FrcFwjNp9uBHh4Kn_Kl22RXksrRHntIHWBU6FJ3Eun/exec';
 const MODES = {NEW:'📦 NEW STOCK',SOLD:'💰 SOLD',TRANSFER:'🔄 TRANSFER',DEFECTIVE:'⚠️ DEFECTIVE',BUYBACK:'↩️ BUYBACK',CHECK:'🔎 CHECK'};
 const RULES = {SOLD:['IN STOCK'],TRANSFER:['IN STOCK'],DEFECTIVE:['IN STOCK','SOLD','BUYBACK'],BUYBACK:['SOLD']};
 // [key, label, type, source]  type: text|number|date|select|ro
 const F = {
- NEW:[['type','Type of Phone','select','types'],['date_purchase','Date Purchase','date'],['date_received','Date Received','date'],['supplier','Supplier','text','suppliers'],['cost','Cost Price','number'],['price','Selling Price','number'],['branch','Branch','select','branches']],
- SOLD:[['date','Date Sold','date'],['si','SI No.','text'],['branch','Branch','select','branches'],['price','Cellphone Selling Price','number'],['bundle','Bundle Amount','number'],['inclusions','Bundle Inclusions','text'],['total','Total Sales Amount','ro'],['customer','Customer','text'],['paymode','Payment Mode','select','paymodes'],['financing','Financing Company','select','financing'],['down','Down Payment','number'],['received','Amount Received','number'],['balance','Balance','ro'],['paystatus','Payment Status','select','paystatus'],['remarks','Remarks','text']],
- TRANSFER:[['date','Date Transfer','date'],['from','From Branch','ro'],['to','To Branch','select','branches'],['remarks','Remarks','text']],
- DEFECTIVE:[['date','Date Defective','date'],['branch','Branch','select','branches'],['reason','Defective Reason','text'],['remarks','Remarks','text']],
- BUYBACK:[['date','Date Buyback','date'],['branch','Branch','select','branches'],['from','Buyback From','text'],['amount','Buyback Amount','number'],['paymode','Mode of Payment','select','paymodes'],['reason','Reason','text'],['remarks','Remarks','text']]
+ NEW:[['type','Type of Phone','select','types'],['date_purchase','Date Purchase','date','','t'],['date_received','Date Received','date','','t'],['supplier','Supplier','text','suppliers'],['cost','Cost Price','number'],['price','Selling Price','number'],['branch','Branch','select','branches']],
+ SOLD:[['date','Date Sold','date','','t'],['si','SI No.','text'],['proof_receipt','Proof of Receipt','file'],['proof_purchase','Proof of Purchase','file'],['branch','Branch','select','branches'],['price','Selling Price (auto)','ro'],['bundle','Bundle Amount','number'],['inclusions','Bundle Inclusions','text'],['total','Total Sales Amount','number'],['customer','Customer','text'],['paymode','Payment Mode','select','paymodes'],['financing','Financing Company','select','financing'],['terms','Terms','text'],['monthly','Monthly Payment','number'],['down','Down Payment','number'],['proof_agreement','Proof of Agreement','file'],['received','Amount Received','number'],['balance','Balance','number'],['paystatus','Payment Status','select','paystatus'],['salesperson','Salesperson','select','salespersons'],['incentive','Incentive Amount','number'],['remarks','Remarks','text']],
+ TRANSFER:[['date','Date Transfer','date','','t'],['from','From Branch','ro'],['to','To Branch','select','branches'],['remarks','Remarks','text']],
+ DEFECTIVE:[['date','Date Reported','date','','t'],['defect','Defect Description','select','defects'],['branch','Branch (auto)','ro'],['reason','Defective Reason','text'],['remarks','Remarks','text'],['date_returned','Date Returned to the Supplier','date'],['resolution','Resolution Status','select','resolutions']],
+ BUYBACK:[['date','Date','date','','t'],['branch','Branch','select','branches'],['si','SI No.','text'],['proof_receipt','Proof of Receipt','file'],['proof_buyback','Proof of Buyback','file'],['amount','Buy Back Amount','number'],['customer','Name of Customer','text'],['condition','Condition','select','conditions'],['resale_date','Resale Date','date'],['resale_amount','Amount','number'],['remarks','Remarks','text']]
 };
 const $ = id => document.getElementById(id);
 let cfg = {}, mode = 'CHECK', unit = null, picked = '';
@@ -154,10 +154,15 @@ function buildForm(){
   $('unitPick').innerHTML = mode==='NEW' ? `<label>Model</label><select id="pm" onchange="pickModel()">${opts([...new Set((cfg.units||[]).map(u=>u.m))])}</select>
     <label>Storage</label><select id="ps" onchange="pickStorage()"></select><label>Color</label><select id="pc" onchange="pickColor()"></select>
     <div id="pd" style="margin-top:8px;font-weight:700"></div>` : '';
-  $('fields').innerHTML = '<datalist id="dl">'+(cfg.suppliers||[]).map(s=>`<option>${s}</option>`).join('')+'</datalist>' +
-    F[mode].map(([k,l,t,src])=>`<label>${l}</label>`+(t==='select'?`<select id="f_${k}">${opts(cfg[src])}</select>`
-      :`<input id="f_${k}" ${t==='ro'?'readonly':''} ${t==='number'?'inputmode="decimal"':''} ${t==='date'?'type="date"':''} ${src?'list="dl"':''} oninput="calc()">`)).join('');
-  ['f_date','f_date_purchase','f_date_received'].forEach(i=>{if($(i))$(i).value=today()});
+  const field=([k,l,t,src])=>{
+    const list=cfg[src]||[];
+    if(t==='select'&&list.length) return `<label>${l}</label><select id="f_${k}">${opts(list)}</select>`;
+    if(t==='select') return `<label>${l}</label><input id="f_${k}" placeholder="type here">`;
+    if(t==='file') return `<label>${l} <span style="font-weight:400;color:#666">(photo, optional)</span></label><input id="f_${k}" type="file" accept="image/*">`;
+    return `<label>${l}</label><input id="f_${k}" ${t==='ro'?'readonly':''} ${t==='number'?'inputmode="decimal"':''} ${t==='date'?'type="date"':''} ${src?'list="dl"':''} oninput="calc(this)">`;
+  };
+  $('fields').innerHTML = '<datalist id="dl">'+(cfg.suppliers||[]).map(s=>`<option>${s}</option>`).join('')+'</datalist>' + F[mode].map(field).join('');
+  F[mode].forEach(([k,,t,,fl])=>{if(fl==='t'&&$('f_'+k))$('f_'+k).value=today()});
   if(unit) fillFromUnit();
 }
 function pickModel(){const m=$('pm').value;$('ps').innerHTML=opts([...new Set(cfg.units.filter(u=>u.m===m).map(u=>u.s))]);$('pc').innerHTML='';picked='';$('pd').textContent=''}
@@ -167,9 +172,11 @@ function pickColor(){
   picked=u.d;$('pd').textContent=u.d;const p=cfg.prices[u.d];
   if(p){$('f_cost').value=p.cost;$('f_price').value=p.price;if(p.supplier)$('f_supplier').value=p.supplier}
 }
-function calc(){
+function calc(el){
+  if(el&&(el.id==='f_total'||el.id==='f_balance'))el.dataset.m=1;   // typed by hand -> stop auto-filling it
   if(mode!=='SOLD')return;const v=k=>+($('f_'+k).value)||0;
-  $('f_total').value=v('price')+v('bundle');$('f_balance').value=v('price')+v('bundle')-v('received');
+  if(!$('f_total').dataset.m)$('f_total').value=v('price')+v('bundle');
+  if(!$('f_balance').dataset.m)$('f_balance').value=v('total')-v('received');
 }
 function fillFromUnit(){
   const set=(k,v)=>{if($('f_'+k)&&v!==undefined&&v!=='')$('f_'+k).value=v};
@@ -198,7 +205,7 @@ async function save(){
     body.imei2=$('imei2').value.trim();body.unit=picked;
     if(!$('f_type').value) return toast('Choose the Type of Phone (Brand New / Used)',false);
   }
-  F[mode].forEach(([k])=>body[k]=$('f_'+k).value);
+  try{for(const [k,,t] of F[mode]) body[k]= t==='file' ? await readImage($('f_'+k).files[0]) : $('f_'+k).value}catch(e){return toast(e.message,false)}
   try{body.photo=await captureFace()}catch(e){return toast(e.message,false)}
   $('saveBtn').disabled=true;
   try{
@@ -206,6 +213,19 @@ async function save(){
     ['imei1','imei2'].forEach(i=>$(i).value='');setMode(mode);
   }catch(e){toast(e.message,false)}
   $('saveBtn').disabled=false;
+}
+
+// shrink a chosen picture to a small JPEG before uploading
+async function readImage(f){
+  if(!f) return '';
+  const url=URL.createObjectURL(f);
+  try{
+    const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(Error('Could not read the selected picture'));i.src=url});
+    const k=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');
+    c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL('image/jpeg',0.72);
+  }finally{URL.revokeObjectURL(url)}
 }
 
 // ---------- encoder face photo ----------
